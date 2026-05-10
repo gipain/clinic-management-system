@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: patient-service
+  namespace: clinic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: patient-service
+  template:
+    metadata:
+      labels:
+        app: patient-service
+    spec:
+      containers:
+      - name: patient-service
+        image: clinic/patient-service:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8081
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql-service:3306/patient_db?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+        - name: SPRING_DATASOURCE_USERNAME
+          value: root
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: patient-service
+  namespace: clinic
+spec:
+  selector:
+    app: patient-service
+  ports:
+  - port: 8081
+    targetPort: 8081

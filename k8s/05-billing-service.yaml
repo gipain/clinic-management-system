@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-service
+  namespace: clinic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billing-service
+  template:
+    metadata:
+      labels:
+        app: billing-service
+    spec:
+      containers:
+      - name: billing-service
+        image: clinic/billing-service:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8084
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql-service:3306/billing_db?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+        - name: SPRING_DATASOURCE_USERNAME
+          value: root
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-service
+  namespace: clinic
+spec:
+  selector:
+    app: billing-service
+  ports:
+  - port: 8084
+    targetPort: 8084

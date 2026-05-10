@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: treatment-service
+  namespace: clinic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: treatment-service
+  template:
+    metadata:
+      labels:
+        app: treatment-service
+    spec:
+      containers:
+      - name: treatment-service
+        image: clinic/treatment-service:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8083
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql-service:3306/treatment_db?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+        - name: SPRING_DATASOURCE_USERNAME
+          value: root
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: treatment-service
+  namespace: clinic
+spec:
+  selector:
+    app: treatment-service
+  ports:
+  - port: 8083
+    targetPort: 8083

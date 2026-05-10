@@ -12,6 +12,7 @@ Full-stack medical clinic management system built on Spring Boot microservices (
 medical-clinic-system/
 ├── medical-clinic-backend/      # Spring Boot microservices
 ├── medical-clinic-frontend/     # React + TypeScript SPA
+├── k8s/                         # Kubernetes manifests
 ├── README.md
 ├── SETUP_GUIDE.md
 ├── DEPLOYMENT.md
@@ -108,7 +109,13 @@ medical-clinic-backend/
 │
 ├── pom.xml                               # Parent POM — manages all modules
 ├── docker-compose.yml                    # Orchestrates 6 containers (no Redis)
-└── Dockerfile                            # Multi-stage build for all services
+├── Dockerfile                            # Multi-stage build for all services
+├── Dockerfile.template                   # Per-service Dockerfile template
+├── api-gateway/Dockerfile.k8s            # Kubernetes image build (copies pre-built JAR)
+├── patient-service/Dockerfile.k8s
+├── appointment-service/Dockerfile.k8s
+├── treatment-service/Dockerfile.k8s
+└── billing-service/Dockerfile.k8s
 ```
 
 ---
@@ -180,8 +187,67 @@ medical-clinic-frontend/
 ├── vite.config.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
-└── components.json                           # shadcn/ui config
+├── components.json                           # shadcn/ui config
+├── Dockerfile.k8s                            # nginx image for Kubernetes deployment
+└── nginx.conf                                # nginx config: serves SPA + proxies /api → api-gateway
 ```
+
+---
+
+## Kubernetes Deployment (`k8s/`)
+
+```
+k8s/
+├── 00-namespace.yaml          # Namespace: clinic
+├── 01-mysql.yaml              # MySQL Deployment + Service + Secret + PVC
+├── 02-patient-service.yaml    # patient-service Deployment + ClusterIP Service
+├── 03-appointment-service.yaml  # appointment-service (2 replicas) + RollingUpdate + Service
+├── 04-treatment-service.yaml  # treatment-service Deployment + Service
+├── 05-billing-service.yaml    # billing-service Deployment + Service
+├── 06-api-gateway.yaml        # api-gateway Deployment + NodePort Service (:30080)
+└── 07-frontend.yaml           # frontend nginx Deployment + NodePort Service (:30000)
+```
+
+### Kubernetes Architecture
+
+- **Cluster**: Minikube (single-node, Docker driver)
+- **Namespace**: `clinic`
+- **Total Pods**: 9 (mysql ×1, api-gateway ×1, patient ×1, appointment ×3, treatment ×1, billing ×1, frontend ×1)
+- **External access**: frontend NodePort `30000`, api-gateway NodePort `30080`
+- **Internal DNS**: services reach each other by name (e.g. `mysql-service:3306`, `api-gateway:8080`)
+- **nginx proxy**: frontend container proxies `/api/*` → `api-gateway:8080` (browser only needs one port)
+- **Scaling**: appointment-service scaled to 3 replicas with `kubectl scale`
+- **Rolling update**: appointment-service updated `1.0 → 1.1` with zero downtime
+
+### Quick Deploy to Kubernetes
+
+```bash
+# 1. Start Minikube
+minikube start --driver=docker
+
+# 2. Build & load images
+docker build -f medical-clinic-backend/api-gateway/Dockerfile.k8s     -t clinic/api-gateway:1.0     medical-clinic-backend/api-gateway
+docker build -f medical-clinic-backend/patient-service/Dockerfile.k8s -t clinic/patient-service:1.0 medical-clinic-backend/patient-service
+docker build -f medical-clinic-backend/appointment-service/Dockerfile.k8s -t clinic/appointment-service:1.0 medical-clinic-backend/appointment-service
+docker build -f medical-clinic-backend/treatment-service/Dockerfile.k8s   -t clinic/treatment-service:1.0   medical-clinic-backend/treatment-service
+docker build -f medical-clinic-backend/billing-service/Dockerfile.k8s     -t clinic/billing-service:1.0     medical-clinic-backend/billing-service
+docker build -f medical-clinic-frontend/Dockerfile.k8s -t clinic/frontend:1.0 medical-clinic-frontend
+
+minikube image load clinic/api-gateway:1.0
+minikube image load clinic/patient-service:1.0
+minikube image load clinic/appointment-service:1.0
+minikube image load clinic/treatment-service:1.0
+minikube image load clinic/billing-service:1.0
+minikube image load clinic/frontend:1.0
+
+# 3. Apply manifests
+kubectl apply -f k8s/
+
+# 4. Port-forward (Windows/Mac — Minikube Docker driver)
+kubectl port-forward svc/frontend 3001:80 -n clinic
+```
+
+Open **http://localhost:3001**
 
 ---
 
@@ -255,6 +321,14 @@ medical-clinic-frontend/
 | Sonner | toast notifications |
 | Lucide React | icons |
 
+### Infrastructure (Kubernetes)
+| Technology | Version |
+|------------|---------|
+| Kubernetes | v1.35.1 |
+| Minikube | v1.38.1 |
+| kubectl | v1.36.0 |
+| nginx | alpine (frontend container) |
+
 ---
 
 ## File Statistics
@@ -262,7 +336,9 @@ medical-clinic-frontend/
 - **Backend Java source files**: 30+
 - **Frontend TypeScript/TSX files**: 40+
 - **shadcn/ui components**: 50+
-- **Docker containers**: 6 (MySQL + 5 Spring Boot services)
+- **Docker containers**: 6 (MySQL + 5 Spring Boot services) / 7 with frontend
+- **Kubernetes manifests**: 8 YAML files
+- **Kubernetes Pods (running)**: 9
 - **Documentation files**: 5
 
 ---
@@ -279,10 +355,18 @@ medical-clinic-frontend/
 
 ## Getting Started
 
+### Option A — Docker Compose (local dev)
 1. Clone the repository
 2. Follow **SETUP_GUIDE.md** for full installation instructions
 3. Run `mvn clean install -DskipTests && docker-compose up --build` in `medical-clinic-backend/`
 4. Run `npm install && npm run dev` in `medical-clinic-frontend/`
 5. Open `http://localhost:3000`
+
+### Option B — Kubernetes (Minikube)
+1. Build JARs: `mvn clean install -DskipTests` in `medical-clinic-backend/`
+2. Build Docker images (see `k8s/` Quick Deploy section above)
+3. `kubectl apply -f k8s/`
+4. `kubectl port-forward svc/frontend 3001:80 -n clinic`
+5. Open `http://localhost:3001`
 
 See **DEPLOYMENT.md** for detailed deployment, environment configuration, and troubleshooting.

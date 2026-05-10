@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { appointmentService, patientService, billingService } from '@/services/api';
 import { toast } from 'sonner';
 import type { Appointment, User } from '@/types';
-import { Loader2, Plus, Clock, CheckCircle, XCircle, CircleCheck } from 'lucide-react';
+import { Loader2, Plus, Clock, CheckCircle, XCircle, CircleCheck, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Appointments() {
@@ -65,10 +65,30 @@ export default function Appointments() {
         appt.id,
         'Medical Consultation',
       );
-      toast.success(`Appointment completed — bill sent to patient`);
+      toast.success('Appointment completed — bill sent to patient');
       fetchData();
     } catch {
       toast.error('Failed to complete appointment');
+    }
+  };
+
+  const handleApprove = async (appt: Appointment) => {
+    try {
+      await appointmentService.updateStatus(appt.id, 'APPROVED');
+      toast.success('Appointment approved');
+      fetchData();
+    } catch {
+      toast.error('Failed to approve appointment');
+    }
+  };
+
+  const handleReject = async (appt: Appointment) => {
+    try {
+      await appointmentService.updateStatus(appt.id, 'REJECTED');
+      toast.success('Appointment rejected');
+      fetchData();
+    } catch {
+      toast.error('Failed to reject appointment');
     }
   };
 
@@ -194,7 +214,27 @@ export default function Appointments() {
                     {appt.status.replace('_', ' ')}
                   </span>
 
-                  {/* Doctor can mark APPROVED appointment as COMPLETED */}
+                  {/* Doctor: approve / reject pending appointments */}
+                  {user?.role === 'DOCTOR' && appt.status === 'PENDING_APPROVAL' && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => handleApprove(appt)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <ThumbsUp size={14} className="mr-1" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleReject(appt)}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <ThumbsDown size={14} className="mr-1" /> Reject
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Doctor: mark approved appointment as completed */}
                   {user?.role === 'DOCTOR' && appt.status === 'APPROVED' && (
                     <Button
                       size="sm"

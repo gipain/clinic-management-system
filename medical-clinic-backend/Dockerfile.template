@@ -1,0 +1,17 @@
+FROM maven:3.8.4-openjdk-17-slim AS build
+WORKDIR /app
+COPY pom.xml .
+COPY common-module/pom.xml common-module/
+COPY patient-service/pom.xml patient-service/
+COPY appointment-service/pom.xml appointment-service/
+COPY treatment-service/pom.xml treatment-service/
+COPY billing-service/pom.xml billing-service/
+COPY api-gateway/pom.xml api-gateway/
+COPY . .
+RUN mvn clean install -DskipTests
+
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+ARG SERVICE_NAME
+COPY --from=build /app/${SERVICE_NAME}/target/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]

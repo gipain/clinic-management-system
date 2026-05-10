@@ -1,0 +1,42 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: patient-service
+          uri: http://patient-service:8081
+          predicates:
+            - Path=/api/patients/**, /api/auth/**
+          filters:
+            - StripPrefix=1
+        - id: appointment-service
+          uri: http://appointment-service:8082
+          predicates:
+            - Path=/api/appointments/**
+          filters:
+            - StripPrefix=1
+        - id: treatment-service
+          uri: http://treatment-service:8083
+          predicates:
+            - Path=/api/treatments/**
+          filters:
+            - StripPrefix=1
+        - id: billing-service
+          uri: http://billing-service:8084
+          predicates:
+            - Path=/api/billing/**
+          filters:
+            - StripPrefix=1
+      # CORS is handled by CorsConfig.java
+      # globalcors configuration removed to avoid conflicts
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG

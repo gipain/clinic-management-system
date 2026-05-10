@@ -1,0 +1,52 @@
+# Backend — compiled artifacts (all modules)
+**/target/
+medical-clinic-backend/.idea/
+medical-clinic-backend/*.iml
+medical-clinic-backend/.DS_Store
+medical-clinic-backend/dependency-reduced-pom.xml
+
+# Claude IDE internal files
+.claude/
+
+# Frontend
+medical-clinic-frontend/node_modules/
+medical-clinic-frontend/dist/
+medical-clinic-frontend/build/
+medical-clinic-frontend/.DS_Store
+medical-clinic-frontend/.env.local
+medical-clinic-frontend/.env.*.local
+medical-clinic-frontend/.vscode/
+medical-clinic-frontend/.idea/
+medical-clinic-frontend/*.iml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+*.tmp
+.cache/

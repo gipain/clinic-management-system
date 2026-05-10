@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: medical-clinic-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: medical_clinic
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - medical-clinic-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: api-gateway-runtime
+    container_name: medical-clinic-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      patient-service:
+        condition: service_started
+      appointment-service:
+        condition: service_started
+      treatment-service:
+        condition: service_started
+      billing-service:
+        condition: service_started
+    environment:
+      SPRING_APPLICATION_NAME: api-gateway
+      SERVER_PORT: 8080
+    networks:
+      - medical-clinic-network
+
+  patient-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: patient-service-runtime
+    container_name: medical-clinic-patient
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: patient-service
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/patient_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - medical-clinic-network
+
+  appointment-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: appointment-service-runtime
+    container_name: medical-clinic-appointment
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: appointment-service
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/appointment_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - medical-clinic-network
+
+  treatment-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: treatment-service-runtime
+    container_name: medical-clinic-treatment
+    ports:
+      - "8083:8083"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: treatment-service
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/treatment_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - medical-clinic-network
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: billing-service-runtime
+    container_name: medical-clinic-billing
+    ports:
+      - "8084:8084"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: billing-service
+      SERVER_PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/billing_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - medical-clinic-network
+
+volumes:
+  mysql_data:
+
+networks:
+  medical-clinic-network:
+    driver: bridge

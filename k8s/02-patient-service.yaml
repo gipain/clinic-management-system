@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: patient-service
-        image: clinic/patient-service:1.0
+        image: clinic/patient-service:1.2
         imagePullPolicy: Never
         ports:
         - containerPort: 8081

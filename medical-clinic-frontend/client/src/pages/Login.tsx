@@ -25,7 +25,7 @@ export default function Login() {
 
     try {
       const response = await authService.login(formData.username, formData.password);
-      const { token, role, userId, username, firstName, lastName } = response.data;
+      const { token, role, userId, username, firstName, lastName, specialty, education, phone, age } = response.data as any;
 
       // Use actual user data from backend
       const user = {
@@ -34,6 +34,10 @@ export default function Login() {
         firstName: firstName || 'User',
         lastName: lastName || '',
         role: role as UserRole,
+        specialty: specialty || '',
+        education: education || '',
+        phone: phone || '',
+        age: age ?? undefined,
       };
 
       login(user, token);

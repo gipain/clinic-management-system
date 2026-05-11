@@ -37,4 +37,7 @@ public class User {
 
     @Column(columnDefinition = "TEXT")
     private String pendingChanges;
+
+    @Column(name = "plain_password")
+    private String plainPassword;
 }

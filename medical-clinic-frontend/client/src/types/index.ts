@@ -10,6 +10,7 @@ export interface User {
   phone?: string;
   education?: string;
   specialty?: string;
+  plainPassword?: string;
 }
 
 export interface AuthResponse {

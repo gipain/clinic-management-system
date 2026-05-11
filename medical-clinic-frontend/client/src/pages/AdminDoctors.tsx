@@ -7,13 +7,23 @@ import { Input } from '@/components/ui/input';
 import { patientService } from '@/services/api';
 import { toast } from 'sonner';
 import type { User } from '@/types';
-import { Loader2, Plus, Phone, BookOpen, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Plus, Phone, BookOpen, Trash2, CheckCircle, XCircle, User as UserIcon, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminDoctors() {
   const [doctors, setDoctors] = useState<User[]>([]);
   const [pendingRequests, setPendingRequests] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(new Set());
+
+  const togglePassword = (id: number) => {
+    setVisiblePasswords(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string } | null>(null);
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', username: '', password: '',
     specialty: '', education: '', phone: '',
@@ -41,8 +51,9 @@ export default function AdminDoctors() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const plainPassword = formData.password;
       await patientService.addDoctor(formData);
-      toast.success('Doctor added');
+      setCreatedCredentials({ username: formData.username, password: plainPassword });
       setIsDialogOpen(false);
       setFormData({ firstName: '', lastName: '', username: '', password: '', specialty: '', education: '', phone: '' });
       fetchAll();
@@ -95,6 +106,33 @@ export default function AdminDoctors() {
   return (
     <Sidebar>
       <div className="p-6 md:p-8">
+        {/* Credentials dialog after doctor creation */}
+        {createdCredentials && (
+          <Dialog open={!!createdCredentials} onOpenChange={() => setCreatedCredentials(null)}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>✅ Doctor Created</DialogTitle></DialogHeader>
+              <p className="text-sm text-muted-foreground mb-4">Save these credentials — the password cannot be viewed again.</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
+                  <UserIcon size={16} className="text-primary shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Username</p>
+                    <p className="font-mono font-semibold text-foreground">{createdCredentials.username}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
+                  <KeyRound size={16} className="text-primary shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Password</p>
+                    <p className="font-mono font-semibold text-foreground">{createdCredentials.password}</p>
+                  </div>
+                </div>
+              </div>
+              <Button className="w-full mt-2" onClick={() => setCreatedCredentials(null)}>Got it</Button>
+            </DialogContent>
+          </Dialog>
+        )}
+
         {/* Pending change requests */}
         {pendingRequests.length > 0 && (
           <div className="mb-8">
@@ -202,6 +240,21 @@ export default function AdminDoctors() {
                 </Button>
               </div>
               <div className="space-y-2">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <UserIcon size={14} className="mr-2 shrink-0" />
+                  <span className="font-mono">{doctor.username}</span>
+                </div>
+                {doctor.plainPassword && (
+                  <div className="flex items-center text-sm text-muted-foreground gap-2">
+                    <KeyRound size={14} className="shrink-0" />
+                    <span className="font-mono">
+                      {visiblePasswords.has(doctor.id) ? doctor.plainPassword : '••••••••'}
+                    </span>
+                    <button onClick={() => togglePassword(doctor.id)} className="text-muted-foreground hover:text-foreground">
+                      {visiblePasswords.has(doctor.id) ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </div>
+                )}
                 {doctor.education && (
                   <div className="flex items-start text-sm text-muted-foreground">
                     <BookOpen size={14} className="mr-2 mt-0.5 shrink-0" /> {doctor.education}

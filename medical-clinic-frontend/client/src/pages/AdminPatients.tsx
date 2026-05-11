@@ -5,11 +5,20 @@ import { Button } from '@/components/ui/button';
 import { patientService } from '@/services/api';
 import { toast } from 'sonner';
 import type { User } from '@/types';
-import { Loader2, Phone, User as UserIcon, Trash2 } from 'lucide-react';
+import { Loader2, Phone, User as UserIcon, Trash2, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminPatients() {
   const [patients, setPatients] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(new Set());
+
+  const togglePassword = (id: number) => {
+    setVisiblePasswords(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => { fetchPatients(); }, []);
 
@@ -60,6 +69,7 @@ export default function AdminPatients() {
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-medium text-foreground">Patient</th>
                   <th className="text-left py-3 px-4 font-medium text-foreground">Username</th>
+                  <th className="text-left py-3 px-4 font-medium text-foreground">Password</th>
                   <th className="text-left py-3 px-4 font-medium text-foreground">Age</th>
                   <th className="text-left py-3 px-4 font-medium text-foreground">Phone</th>
                   <th className="text-left py-3 px-4 font-medium text-foreground">Action</th>
@@ -76,7 +86,21 @@ export default function AdminPatients() {
                         <span className="font-medium text-foreground">{patient.firstName} {patient.lastName}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">{patient.username}</td>
+                    <td className="py-3 px-4 text-muted-foreground font-mono">{patient.username}</td>
+                    <td className="py-3 px-4 text-muted-foreground">
+                      {patient.plainPassword ? (
+                        <span className="flex items-center gap-2">
+                          <span className="font-mono text-sm">
+                            {visiblePasswords.has(patient.id) ? patient.plainPassword : '••••••••'}
+                          </span>
+                          <button onClick={() => togglePassword(patient.id)} className="text-muted-foreground hover:text-foreground">
+                            {visiblePasswords.has(patient.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/60 italic">—</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground">{patient.age ?? '—'}</td>
                     <td className="py-3 px-4 text-muted-foreground">
                       {patient.phone ? (

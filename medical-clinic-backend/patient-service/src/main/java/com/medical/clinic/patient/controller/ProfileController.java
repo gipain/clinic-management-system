@@ -32,8 +32,10 @@ public class ProfileController {
         if (userRepository.findByUsername(doctor.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Username already exists"));
         }
+        String plainPwd = doctor.getPassword();
         doctor.setRole(UserRole.DOCTOR);
-        doctor.setPassword(passwordEncoder.encode(doctor.getPassword()));
+        doctor.setPassword(passwordEncoder.encode(plainPwd));
+        doctor.setPlainPassword(plainPwd);
         return ResponseEntity.ok(userRepository.save(doctor));
     }
 
